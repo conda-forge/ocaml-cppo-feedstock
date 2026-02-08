@@ -1,7 +1,7 @@
 context:
   build_number: 1
   name: ocaml-cppo
-  version: "1.6.9"
+  version: "1.8.0"
 
   # Set to true when ocamlbuild >= 0.16.1 build 1 is available on conda-forge
   build_cppo_ocamlbuild: false
@@ -16,7 +16,7 @@ package:
 
 source:
   - url: https://github.com/ocaml-community/cppo/archive/v${{ version }}.tar.gz
-    sha256: 16036d85c11d330a7c8b56f4e071d6bbe86d8937c89d3d79f6eef0e38bdda26a
+    sha256: 6e62a8ee0217c9cc38d5860110eb18eb8d89c05c420353d298e1431fe8bac00f
 
 build:
   number: ${{ build_number }}
