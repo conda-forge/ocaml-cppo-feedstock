@@ -142,7 +142,12 @@ if is_cross_compile; then
   if [[ -n "${CC_FOR_BUILD:-}" ]]; then
     export CC="${CC_FOR_BUILD}"
   elif [[ -n "${CONDA_TOOLCHAIN_BUILD:-}" ]]; then
-    export CC="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc"
+    # Platform-specific: macOS uses clang, Linux uses gcc
+    if is_macos; then
+      export CC="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-clang"
+    else
+      export CC="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc"
+    fi
   fi
 
   # ===========================================================================
@@ -157,9 +162,17 @@ if is_cross_compile; then
     export CONDA_OCAML_LD="${CONDA_TOOLCHAIN_BUILD}-ld"
     export CONDA_OCAML_AR="${CONDA_TOOLCHAIN_BUILD}-ar"
     export CONDA_OCAML_RANLIB="${CONDA_TOOLCHAIN_BUILD}-ranlib"
-    export CONDA_OCAML_CC="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc"
-    export CONDA_OCAML_MKEXE="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc -Wl,-E -ldl"
-    export CONDA_OCAML_MKDLL="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc -shared"
+
+    # Platform-specific compiler: macOS uses clang, Linux uses gcc
+    if is_macos; then
+      export CONDA_OCAML_CC="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-clang"
+      export CONDA_OCAML_MKEXE="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-clang"
+      export CONDA_OCAML_MKDLL="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-clang -dynamiclib"
+    else
+      export CONDA_OCAML_CC="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc"
+      export CONDA_OCAML_MKEXE="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc -Wl,-E -ldl"
+      export CONDA_OCAML_MKDLL="${BUILD_PREFIX}/bin/${CONDA_TOOLCHAIN_BUILD}-gcc -shared"
+    fi
   fi
 
   # Clear cross-compilation flags that would interfere with build-time tool
