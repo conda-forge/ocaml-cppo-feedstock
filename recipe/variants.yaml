@@ -1,0 +1,10 @@
+ocaml_compiler:
+  - ocaml
+
+ocaml_compiler_version:
+  - "5.4.0"
+
+ocaml_toolchain:
+  - if: not unix
+    then:
+      - gcc

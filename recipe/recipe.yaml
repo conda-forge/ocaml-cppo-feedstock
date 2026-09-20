@@ -1,13 +1,19 @@
 context:
-  build_number: 1
+  build_number: 2
   name: ocaml-cppo
   version: "1.8.0"
 
   # Set to true when ocamlbuild >= 0.16.1 build 1 is available on conda-forge
+  # NOTE: flipping this to true makes the package ship cppo_ocamlbuild, which is a
+  # real OCaml library (ocamlbuild_plugin/dune declares `library`) and therefore
+  # ships compiled interfaces. At that point this package MUST also pin ocaml on
+  # run: to the same version it was built against, or end users hit
+  # "inconsistent assumptions over implementation" errors. While this is false the
+  # package is executable-only and needs no runtime ocaml constraint.
   build_cppo_ocamlbuild: false
 
-  library: ${{ "Library/" if not unix }}
-  m2: ${{ "m2-" if not unix }}
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
   sh: ${{ "sh" if unix else "bat" }}
 
 package:
@@ -38,7 +44,14 @@ requirements:
     - ${{ m2 }}gawk
     - ${{ m2 }}grep
     - ocaml-dune
-    - ocaml ==5.3.0 *_10
+    - if: unix
+      then:
+        - ${{ compiler("ocaml") }}
+      else:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ ocaml_toolchain }}_*
+    - if: build_platform != target_platform
+      then:
+        - ocaml ${{ ocaml_compiler_version }}.*
     - if: build_cppo_ocamlbuild
       then:
         - ocamlbuild >=0.16.1 *_1
@@ -46,7 +59,11 @@ requirements:
       then:
         - ${{ m2 }}coreutils
   host:
-    - ocaml ==5.3.0 *_10
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ ocaml_toolchain }}_*
+      else:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
   # cppo is a build-time tool, no runtime OCaml dependency needed
   ignore_run_exports:
     by_name:
