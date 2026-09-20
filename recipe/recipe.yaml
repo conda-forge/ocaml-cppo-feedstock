@@ -87,21 +87,19 @@ tests:
             - ${{ library }}doc/cppo_ocamlbuild/README.md
             - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
 
-  # Python-based functional tests (skip arm64 - no emulator on conda-forge)
-  - if: not arm64
-    then:
-      script: |
-        python testing/test-cppo-arch.py
-        python testing/test-cppo-functional.py
-      files:
-        recipe:
-          - testing/test_utils.py
-          - testing/test-cppo-arch.py
-          - testing/test-cppo-functional.py
-      requirements:
-        run:
-          - ${{ m2 }}file
-          - python >=3.9
+  # Python-based functional tests
+  - script: |
+      python testing/test-cppo-arch.py
+      python testing/test-cppo-functional.py
+    files:
+      recipe:
+        - testing/test_utils.py
+        - testing/test-cppo-arch.py
+        - testing/test-cppo-functional.py
+    requirements:
+      run:
+        - ${{ m2 }}file
+        - python >=3.9
 
 about:
   license: BSD-3-Clause

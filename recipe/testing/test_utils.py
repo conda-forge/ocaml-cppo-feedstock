@@ -52,6 +52,10 @@ def get_target_arch() -> str:
     returns the HOST arch (x86_64), not the TARGET arch (aarch64/ppc64le).
 
     Check conda's target_platform env var first, then fall back to platform.machine().
+
+    NOTE: This is used only for non-verification purposes (e.g. selecting a runtime
+    workaround). The architecture test must verify against get_target_platform()
+    and the actual binary contents, not this function.
     """
     target_platform = os.environ.get("target_platform", "")
     if "aarch64" in target_platform:
@@ -63,75 +67,44 @@ def get_target_arch() -> str:
     return platform.machine().lower()
 
 
-def is_known_ocaml_bug(arch_sensitive: bool = True) -> tuple[bool, str]:
-    """Check if failures are expected due to known OCaml bugs.
+def get_target_platform() -> str:
+    """Read the conda target platform recorded during build.
 
-    OCaml <= 5.3.0 has known bugs (especially GC issues on aarch64/ppc64le).
-    OCaml >= 5.4.0 should have these fixed.
-
-    Args:
-        arch_sensitive: If True, only consider it a known bug on affected architectures
-                       (aarch64, ppc64le, arm64). If False, apply to all architectures.
+    Reads from etc/conda/test-files/target-platform, a file written by
+    build.sh containing exactly one line with the conda target platform
+    string (e.g. "linux-64", "osx-arm64", "linux-ppc64le").
 
     Returns:
-        Tuple of (is_known_bug: bool, reason: str)
-        - is_known_bug: True if failures should be documented, not treated as errors
-        - reason: Human-readable explanation
+        The stripped target platform string.
+
+    Raises:
+        FileNotFoundError: If the target-platform file does not exist. A
+            missing file indicates a packaging problem and must never be
+            treated as a silent pass by callers.
     """
-    build_version = get_ocaml_build_version()
-    version_str = get_ocaml_build_version_str()
-    arch = get_target_arch()
-
-    # OCaml >= 5.4.0: bugs should be fixed, failures are real
-    if build_version >= (5, 4, 0):
-        return False, ""
-
-    # OCaml <= 5.3.0: known bugs
-    if arch_sensitive:
-        affected_archs = ("aarch64", "ppc64le", "arm64")
-        if arch in affected_archs:
-            reason = (
-                f"OCaml {version_str} has known GC bugs on {arch} causing test failures. "
-                "This is fixed in OCaml 5.4.0."
-            )
-            return True, reason
-        # Not on affected arch
-        return False, ""
-    else:
-        # Arch-insensitive: all archs affected
-        reason = f"OCaml {version_str} has known bugs causing test failures. Fixed in 5.4.0."
-        return True, reason
+    prefix = get_prefix()
+    platform_file = prefix / "etc" / "conda" / "test-files" / "target-platform"
+    if not platform_file.exists():
+        raise FileNotFoundError(
+            f"target-platform file not found at {platform_file}; "
+            "cannot verify binary architecture"
+        )
+    return platform_file.read_text().strip()
 
 
-def handle_test_result(
-    test_name: str,
-    success: bool,
-    arch_sensitive: bool = True,
-) -> int:
-    """Handle test result with OCaml version-aware failure handling.
+def handle_test_result(test_name: str, success: bool) -> int:
+    """Report a test result honestly, with no version- or arch-based suppression.
 
     Args:
         test_name: Name of the test for reporting
         success: Whether the test passed
-        arch_sensitive: Whether the known bug is architecture-specific
 
     Returns:
-        Exit code: 0 if success or known bug, 1 if real failure
+        Exit code: 0 if success, 1 if failure
     """
     if success:
         print(f"\n=== {test_name} passed ===")
         return 0
 
-    is_known, reason = is_known_ocaml_bug(arch_sensitive=arch_sensitive)
-
-    if is_known:
-        print(f"\n[KNOWN BUG] {test_name} failed (expected)")
-        print(f"  {reason}")
-        print(f"  Build OCaml version: {get_ocaml_build_version_str()}")
-        print(f"  Target architecture: {get_target_arch()}")
-        return 0
-    else:
-        print(f"\n=== {test_name} FAILED ===")
-        print(f"  Build OCaml version: {get_ocaml_build_version_str()}")
-        print(f"  Target architecture: {get_target_arch()}")
-        return 1
+    print(f"\n=== {test_name} FAILED ===")
+    return 1

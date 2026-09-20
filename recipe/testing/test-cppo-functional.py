@@ -179,7 +179,7 @@ let from_cli = false
         os.chdir(original_dir)
         shutil.rmtree(test_dir, ignore_errors=True)
 
-    return handle_test_result("cppo functional tests", errors == 0, arch_sensitive=True)
+    return handle_test_result("cppo functional tests", errors == 0)
 
 
 if __name__ == "__main__":

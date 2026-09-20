@@ -111,17 +111,44 @@ configure_cross_environment() {
     export CONDA_OCAML_MKEXE="${CONDA_OCAML_CC} -Wl,-E -ldl"
     export CONDA_OCAML_MKDLL="${CONDA_OCAML_CC} -shared"
   fi
-  export CONDA_OCAML_AR="${CONDA_TOOLCHAIN_HOST}-ar"
-  export CONDA_OCAML_AS="${CONDA_TOOLCHAIN_HOST}-as"
-  export CONDA_OCAML_LD="${CONDA_TOOLCHAIN_HOST}-ld"
-  export QEMU_LD_PREFIX="${BUILD_PREFIX}/${CONDA_TOOLCHAIN_HOST}/sysroot"
 
-  local cross_ocaml_lib="${BUILD_PREFIX}/lib/ocaml-cross-compilers/${CONDA_TOOLCHAIN_HOST}/lib/ocaml"
-  if [[ -d "${cross_ocaml_lib}" ]]; then
-    export OCAMLLIB="${cross_ocaml_lib}"
-    export LIBRARY_PATH="${cross_ocaml_lib}:${PREFIX}/lib:${LIBRARY_PATH:-}"
-    export LDFLAGS="-L${cross_ocaml_lib} -L${PREFIX}/lib ${LDFLAGS:-}"
+  # Resolve the target triplet used for all cross-compiler paths below.
+  # macOS's conda-forge compiler activation sets neither CONDA_TOOLCHAIN_HOST
+  # nor HOST (unlike linux), so we fall back to discovering the triplet from
+  # the installed "<triplet>-ocamlc" wrapper in BUILD_PREFIX/bin.
+  local target_triplet=""
+  if [[ -n "${CONDA_TOOLCHAIN_HOST:-}" ]]; then
+    target_triplet="${CONDA_TOOLCHAIN_HOST}"
+  elif [[ -n "${HOST:-}" ]]; then
+    target_triplet="${HOST}"
+  else
+    local ocamlc_matches=("${BUILD_PREFIX}/bin/"*-ocamlc)
+    if [[ -f "${ocamlc_matches[0]:-}" ]] && [[ ${#ocamlc_matches[@]} -eq 1 ]]; then
+      local ocamlc_basename
+      ocamlc_basename="$(basename "${ocamlc_matches[0]}")"
+      target_triplet="${ocamlc_basename%-ocamlc}"
+    elif [[ ${#ocamlc_matches[@]} -gt 1 ]]; then
+      fail "Ambiguous target triplet: multiple *-ocamlc files found in ${BUILD_PREFIX}/bin: ${ocamlc_matches[*]}"
+    fi
   fi
+  if [[ -z "${target_triplet}" ]]; then
+    fail "Could not resolve target triplet: CONDA_TOOLCHAIN_HOST is unset, HOST is unset, and no unique *-ocamlc file was found in ${BUILD_PREFIX}/bin"
+  fi
+  echo "  Resolved target triplet: ${target_triplet}"
+
+  export CONDA_OCAML_AR="${target_triplet}-ar"
+  export CONDA_OCAML_AS="${target_triplet}-as"
+  export CONDA_OCAML_LD="${target_triplet}-ld"
+  export QEMU_LD_PREFIX="${BUILD_PREFIX}/${target_triplet}/sysroot"
+
+  local cross_ocaml_lib="${BUILD_PREFIX}/lib/ocaml-cross-compilers/${target_triplet}/lib/ocaml"
+  echo "  Cross OCaml lib path: ${cross_ocaml_lib}"
+  if [[ ! -d "${cross_ocaml_lib}" ]]; then
+    fail "Cross OCaml lib directory not found for target triplet '${target_triplet}': expected ${cross_ocaml_lib}"
+  fi
+  export OCAMLLIB="${cross_ocaml_lib}"
+  export LIBRARY_PATH="${cross_ocaml_lib}:${PREFIX}/lib:${LIBRARY_PATH:-}"
+  export LDFLAGS="-L${cross_ocaml_lib} -L${PREFIX}/lib ${LDFLAGS:-}"
 }
 
 create_macos_ocamlmklib_wrapper() {
