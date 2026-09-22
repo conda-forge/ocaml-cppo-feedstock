@@ -10,7 +10,7 @@ context:
   # run: to the same version it was built against, or end users hit
   # "inconsistent assumptions over implementation" errors. While this is false the
   # package is executable-only and needs no runtime ocaml constraint.
-  build_cppo_ocamlbuild: false
+  build_cppo_ocamlbuild: true
 
   # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
   c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
