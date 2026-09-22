@@ -28,6 +28,7 @@ source:
 
 build:
   number: ${{ build_number }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
   script:
     env:
       BUILD_CPPO_OCAMLBUILD: ${{ "1" if build_cppo_ocamlbuild else "0" }}
