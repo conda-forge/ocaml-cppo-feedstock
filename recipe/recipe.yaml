@@ -38,19 +38,25 @@ requirements:
       then:
         - ocaml ${{ ocaml_compiler_version }}.*
     # cppo_ocamlbuild is a real OCaml library (ocamlbuild_plugin/dune declares
-    # `library`), so this package ships compiled interfaces and MUST pin ocaml on
-    # run: to the version it was built against, or users hit "inconsistent
-    # assumptions over implementation".
+    # `library`), so this package ships compiled interfaces and needs a runtime
+    # ocaml constraint. That comes from the host ocaml run_exports - which is why
+    # ignore_run_exports must not list ocaml here.
     - ocamlbuild
     - if: not unix
       then:
         - ${{ m2 }}coreutils
   host:
+    - ocaml ${{ ocaml_compiler_version }}.*
     - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
-  # cppo is a build-time tool, no runtime OCaml dependency needed
-  ignore_run_exports:
-    by_name:
-      - ocaml
+  # The inherited ocaml run_export carries no build-string glob, so it does not
+  # encode the windows toolchain track. ocaml_win-64 ships gcc_* and vs2022_* at
+  # the same version and build, so constrain the track explicitly. This binds
+  # rather than depends: the ocaml metapackage already pulls an exact
+  # ocaml_${{ target_platform }}, so the constraint always has something to bind.
+  run_constraints:
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} * ${{ c_compiler }}_*
 
 tests:
   # Package contents validation (strict)
