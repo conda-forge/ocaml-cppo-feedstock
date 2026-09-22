@@ -29,7 +29,12 @@ fi
 # Windows: Set install prefix and ensure OCaml binaries are in PATH
 if is_non_unix; then
   export CPPO_INSTALL_PREFIX="${_PREFIX_}/Library"
-  export PATH="${BUILD_PREFIX}/bin:${BUILD_PREFIX}/Library/bin:${PATH}"
+  # BUILD_PREFIX is a Win32 path (e.g. D:\bld\...). Appending it raw into a
+  # colon-delimited PATH leaves a drive colon mid-list, which MSYS2's automatic
+  # PATH conversion then splits on and shreds when it spawns a native process.
+  # Use the MSYS2 (/d/bld/...) form instead.
+  BUILD_PREFIX_POSIX="$(cygpath -u "${BUILD_PREFIX}")"
+  export PATH="${BUILD_PREFIX_POSIX}/bin:${BUILD_PREFIX_POSIX}/Library/bin:${PATH}"
 
   echo "=== Windows build environment ==="
   echo "Install prefix: ${CPPO_INSTALL_PREFIX}"
@@ -113,6 +118,26 @@ elif is_non_unix; then
   # WINDOWS BUILD PATH
   # ===========================================================================
   echo "=== Windows build ==="
+
+  # OCaml reports its own C toolchain: msvc on the MSVC port, cc on mingw.
+  # grep -a: ocamlc -config output can trip grep's binary detection.
+  ocaml_ccomp_type="$(ocamlc -config 2>/dev/null | grep -a '^ccomp_type:' | awk '{print $2}')"
+  if [[ "${ocaml_ccomp_type}" == "msvc" ]]; then
+    # Measured on menhir: on this lane the inherited PATH is roughly twice as
+    # long as on the mingw lane - the MSVC/SDK block appears twice and conda
+    # prefixes appear about 8 times - and MSYS2 hands native children an EMPTY
+    # PATH instead of converting it. Fix: build a short PATH from scratch
+    # instead of prepending. /usr/bin is kept so bash's own tools resolve.
+    ml64_dir="$(dirname "$(command -v ml64)")"
+    export PATH="${BUILD_PREFIX_POSIX}/Library/bin:${BUILD_PREFIX_POSIX}/bin:${ml64_dir}:/usr/bin:/c/Windows/System32:/c/Windows"
+  fi
+  echo "  ocamlc ccomp_type: ${ocaml_ccomp_type:-(undetermined)}"
+  echo "  ml64: $(command -v ml64 || echo 'NOT FOUND')"
+  echo "  cygpath: $(command -v cygpath || echo 'NOT FOUND')"
+
+  # dune's windows cache layout mis-handles mixed path separators and dies in
+  # mkdir_p on $SRC_DIR/dune/db. The cache buys nothing in a one-shot CI build.
+  export DUNE_CACHE=disabled
 
   # Build cppo using dune
   if command -v dune &>/dev/null; then
