@@ -12,6 +12,8 @@ context:
   # package is executable-only and needs no runtime ocaml constraint.
   build_cppo_ocamlbuild: false
 
+  # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
+  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
   library: ${{ "Library/" if not unix else "" }}
   m2: ${{ "m2-" if not unix else "" }}
   sh: ${{ "sh" if unix else "bat" }}
@@ -34,41 +36,30 @@ requirements:
   build:
     - if: unix
       then:
-        - ${{ compiler("c") }}
         - ${{ stdlib("c") }}
       else:
-        - ${{ compiler("m2w64_c") }}
         - ${{ stdlib("m2w64_c") }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}file
     - ${{ m2 }}gawk
     - ${{ m2 }}grep
     - ocaml-dune
-    - if: unix
-      then:
-        - ${{ compiler("ocaml") }}
-      else:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ ocaml_toolchain }}_*
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     - if: build_platform != target_platform
       then:
         - ocaml ${{ ocaml_compiler_version }}.*
     - if: build_cppo_ocamlbuild
       then:
-        - ocamlbuild >=0.16.1 *_1
+        - ocamlbuild
     - if: not unix
       then:
         - ${{ m2 }}coreutils
   host:
-    - if: not unix
-      then:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ ocaml_toolchain }}_*
-      else:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
   # cppo is a build-time tool, no runtime OCaml dependency needed
   ignore_run_exports:
     by_name:
       - ocaml
-      - ocaml-cross-compilers
 
 tests:
   # Package contents validation (strict)
@@ -80,12 +71,13 @@ tests:
         - ${{ library }}doc/cppo/LICENSE.md
         - ${{ library }}doc/cppo/README.md
         - ${{ library }}lib/ocaml/cppo/*
-        - etc/conda/test-files/*
         - if: build_cppo_ocamlbuild
           then:
             - ${{ library }}doc/cppo_ocamlbuild/LICENSE.md
             - ${{ library }}doc/cppo_ocamlbuild/README.md
             - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
+        # Tests artifacts
+        - etc/conda/test-files/*
 
   # Python-based functional tests
   - script: |

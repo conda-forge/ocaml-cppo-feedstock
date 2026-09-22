@@ -1,10 +1,9 @@
-ocaml_compiler:
-  - ocaml
+# Local override: gives windows two toolchain lanes (vs2022/gcc).
+c_compiler:
+  - if: not unix and x86_64
+    then:
+      - vs2022
+      - gcc
 
 ocaml_compiler_version:
   - "5.4.0"
-
-ocaml_toolchain:
-  - if: not unix
-    then:
-      - gcc
