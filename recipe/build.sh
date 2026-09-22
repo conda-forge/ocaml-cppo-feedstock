@@ -59,17 +59,11 @@ fi
 # ==============================================================================
 # PACKAGE SELECTION
 # ==============================================================================
-# BUILD_CPPO_OCAMLBUILD is set by recipe.yaml based on ocamlbuild availability
-# cppo_ocamlbuild requires ocamlbuild >= 0.16.1 build 1
+# cppo_ocamlbuild is built unconditionally alongside cppo.
 
-if [[ "${BUILD_CPPO_OCAMLBUILD:-0}" == "1" ]]; then
-  DUNE_PACKAGES="cppo,cppo_ocamlbuild"
-else
-  DUNE_PACKAGES="cppo"
-fi
+DUNE_PACKAGES="cppo,cppo_ocamlbuild"
 
 echo "=== Build configuration ==="
-echo "  BUILD_CPPO_OCAMLBUILD: ${BUILD_CPPO_OCAMLBUILD:-0}"
 echo "  DUNE_PACKAGES: ${DUNE_PACKAGES}"
 
 # ==============================================================================

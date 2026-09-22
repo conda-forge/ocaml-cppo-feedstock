@@ -3,15 +3,6 @@ context:
   name: ocaml-cppo
   version: "1.8.0"
 
-  # Set to true when ocamlbuild >= 0.16.1 build 1 is available on conda-forge
-  # NOTE: flipping this to true makes the package ship cppo_ocamlbuild, which is a
-  # real OCaml library (ocamlbuild_plugin/dune declares `library`) and therefore
-  # ships compiled interfaces. At that point this package MUST also pin ocaml on
-  # run: to the same version it was built against, or end users hit
-  # "inconsistent assumptions over implementation" errors. While this is false the
-  # package is executable-only and needs no runtime ocaml constraint.
-  build_cppo_ocamlbuild: true
-
   # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
   c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
   library: ${{ "Library/" if not unix else "" }}
@@ -29,9 +20,6 @@ source:
 build:
   number: ${{ build_number }}
   string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
-  script:
-    env:
-      BUILD_CPPO_OCAMLBUILD: ${{ "1" if build_cppo_ocamlbuild else "0" }}
 
 requirements:
   build:
@@ -49,9 +37,11 @@ requirements:
     - if: build_platform != target_platform
       then:
         - ocaml ${{ ocaml_compiler_version }}.*
-    - if: build_cppo_ocamlbuild
-      then:
-        - ocamlbuild
+    # cppo_ocamlbuild is a real OCaml library (ocamlbuild_plugin/dune declares
+    # `library`), so this package ships compiled interfaces and MUST pin ocaml on
+    # run: to the version it was built against, or users hit "inconsistent
+    # assumptions over implementation".
+    - ocamlbuild
     - if: not unix
       then:
         - ${{ m2 }}coreutils
@@ -72,11 +62,9 @@ tests:
         - ${{ library }}doc/cppo/LICENSE.md
         - ${{ library }}doc/cppo/README.md
         - ${{ library }}lib/ocaml/cppo/*
-        - if: build_cppo_ocamlbuild
-          then:
-            - ${{ library }}doc/cppo_ocamlbuild/LICENSE.md
-            - ${{ library }}doc/cppo_ocamlbuild/README.md
-            - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
+        - ${{ library }}doc/cppo_ocamlbuild/LICENSE.md
+        - ${{ library }}doc/cppo_ocamlbuild/README.md
+        - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
         # Tests artifacts
         - etc/conda/test-files/*
 
