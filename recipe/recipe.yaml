@@ -1,13 +1,12 @@
 context:
-  build_number: 1
+  build_number: 2
   name: ocaml-cppo
   version: "1.8.0"
 
-  # Set to true when ocamlbuild >= 0.16.1 build 1 is available on conda-forge
-  build_cppo_ocamlbuild: false
-
-  library: ${{ "Library/" if not unix }}
-  m2: ${{ "m2-" if not unix }}
+  # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
+  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
   sh: ${{ "sh" if unix else "bat" }}
 
 package:
@@ -20,38 +19,44 @@ source:
 
 build:
   number: ${{ build_number }}
-  script:
-    env:
-      BUILD_CPPO_OCAMLBUILD: ${{ "1" if build_cppo_ocamlbuild else "0" }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
 
 requirements:
   build:
     - if: unix
       then:
-        - ${{ compiler("c") }}
         - ${{ stdlib("c") }}
       else:
-        - ${{ compiler("m2w64_c") }}
         - ${{ stdlib("m2w64_c") }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}file
     - ${{ m2 }}gawk
     - ${{ m2 }}grep
     - ocaml-dune
-    - ocaml ==5.3.0 *_10
-    - if: build_cppo_ocamlbuild
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - if: build_platform != target_platform
       then:
-        - ocamlbuild >=0.16.1 *_1
+        - ocaml ${{ ocaml_compiler_version }}.*
+    # cppo_ocamlbuild is a real OCaml library (ocamlbuild_plugin/dune declares
+    # `library`), so this package ships compiled interfaces and needs a runtime
+    # ocaml constraint. That comes from the host ocaml run_exports - which is why
+    # ignore_run_exports must not list ocaml here.
+    - ocamlbuild
     - if: not unix
       then:
         - ${{ m2 }}coreutils
   host:
-    - ocaml ==5.3.0 *_10
-  # cppo is a build-time tool, no runtime OCaml dependency needed
-  ignore_run_exports:
-    by_name:
-      - ocaml
-      - ocaml-cross-compilers
+    - ocaml ${{ ocaml_compiler_version }}.*
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+  # The inherited ocaml run_export carries no build-string glob, so it does not
+  # encode the windows toolchain track. ocaml_win-64 ships gcc_* and vs2022_* at
+  # the same version and build, so constrain the track explicitly. This binds
+  # rather than depends: the ocaml metapackage already pulls an exact
+  # ocaml_${{ target_platform }}, so the constraint always has something to bind.
+  run_constraints:
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} * ${{ c_compiler }}_*
 
 tests:
   # Package contents validation (strict)
@@ -63,28 +68,25 @@ tests:
         - ${{ library }}doc/cppo/LICENSE.md
         - ${{ library }}doc/cppo/README.md
         - ${{ library }}lib/ocaml/cppo/*
+        - ${{ library }}doc/cppo_ocamlbuild/LICENSE.md
+        - ${{ library }}doc/cppo_ocamlbuild/README.md
+        - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
+        # Tests artifacts
         - etc/conda/test-files/*
-        - if: build_cppo_ocamlbuild
-          then:
-            - ${{ library }}doc/cppo_ocamlbuild/LICENSE.md
-            - ${{ library }}doc/cppo_ocamlbuild/README.md
-            - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
 
-  # Python-based functional tests (skip arm64 - no emulator on conda-forge)
-  - if: not arm64
-    then:
-      script: |
-        python testing/test-cppo-arch.py
-        python testing/test-cppo-functional.py
-      files:
-        recipe:
-          - testing/test_utils.py
-          - testing/test-cppo-arch.py
-          - testing/test-cppo-functional.py
-      requirements:
-        run:
-          - ${{ m2 }}file
-          - python >=3.9
+  # Python-based functional tests
+  - script: |
+      python testing/test-cppo-arch.py
+      python testing/test-cppo-functional.py
+    files:
+      recipe:
+        - testing/test_utils.py
+        - testing/test-cppo-arch.py
+        - testing/test-cppo-functional.py
+    requirements:
+      run:
+        - ${{ m2 }}file
+        - python >=3.9
 
 about:
   license: BSD-3-Clause

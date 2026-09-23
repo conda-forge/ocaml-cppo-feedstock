@@ -11,42 +11,61 @@ import struct
 import subprocess
 import sys
 
-from test_utils import handle_test_result
+from test_utils import get_target_platform, handle_test_result
+
+# Token that `file` emits for a native binary of each conda target platform.
+# Unrecognized target platforms must fail loudly - no permissive fallback.
+UNIX_ARCH_TOKENS = {
+    "linux-64": "x86-64",
+    "osx-64": "x86_64",
+    "linux-aarch64": "aarch64",
+    "osx-arm64": "arm64",
+    "linux-ppc64le": "PowerPC",
+}
 
 
 def check_unix_arch(binary_path):
-    """Check architecture using file command on Unix."""
+    """Check architecture using file command on Unix, against the target platform."""
     result = subprocess.run(
         ["file", binary_path],
         capture_output=True,
         text=True,
         check=False,
     )
-    arch_info = result.stdout.lower()
-    print(f"File info: {result.stdout.strip()}")
+    file_output = result.stdout.strip()
+    print(f"File info: {file_output}")
 
-    known_archs = [
-        ("aarch64", "aarch64 (ARM 64-bit)"),
-        ("arm aarch64", "aarch64 (ARM 64-bit)"),
-        ("arm64", "arm64 (macOS ARM)"),
-        ("x86-64", "x86_64 (AMD 64-bit)"),
-        ("x86_64", "x86_64 (AMD 64-bit)"),
-        ("powerpc", "ppc64le (POWER 64-bit)"),
-        ("ppc64", "ppc64le (POWER 64-bit)"),
-    ]
+    try:
+        target_platform = get_target_platform()
+    except FileNotFoundError as e:
+        print(f"[FAIL] {e}")
+        return False
 
-    for pattern, name in known_archs:
-        if pattern in arch_info:
-            print(f"  Detected architecture: {name}")
-            print("[OK] Architecture check passed")
-            return True
+    expected_token = UNIX_ARCH_TOKENS.get(target_platform)
+    if expected_token is None:
+        print(f"[FAIL] Unrecognized target platform: {target_platform}")
+        return False
 
-    print("[FAIL] Unrecognized binary format")
+    if expected_token.lower() in file_output.lower():
+        print(f"  Target platform: {target_platform} (expected token: {expected_token})")
+        print("[OK] Architecture check passed")
+        return True
+
+    print(f"[FAIL] Architecture mismatch for target platform {target_platform}")
+    print(f"  Expected token: {expected_token}")
+    print(f"  file output: {file_output}")
     return False
 
 
+# PE machine type expected for each conda target platform.
+WINDOWS_ARCH_MACHINE_TYPES = {
+    "win-64": 0x8664,
+    "win-arm64": 0xAA64,
+}
+
+
 def check_windows_arch(binary_path):
-    """Check PE architecture on Windows using native Python."""
+    """Check PE architecture on Windows using native Python, against the target platform."""
     try:
         with open(binary_path, "rb") as f:
             dos_header = f.read(64)
@@ -68,18 +87,32 @@ def check_windows_arch(binary_path):
                 0x014C: "i386 (x86)",
                 0xAA64: "ARM64",
             }
+            name = machine_names.get(machine_type, f"unknown (0x{machine_type:04X})")
+            print(f"  Machine type: {name}")
 
-            if machine_type in machine_names:
-                name = machine_names[machine_type]
-                print(f"  Machine type: {name}")
-                if machine_type == 0x014C:
-                    print("[FAIL] Expected 64-bit, got 32-bit x86")
-                    return False
-                print("[OK] Architecture check passed")
-                return True
-            else:
-                print(f"[FAIL] Unknown machine type: 0x{machine_type:04X}")
+            if machine_type == 0x014C:
+                print("[FAIL] Expected 64-bit, got 32-bit x86")
                 return False
+
+            try:
+                target_platform = get_target_platform()
+            except FileNotFoundError as e:
+                print(f"[FAIL] {e}")
+                return False
+
+            expected_machine = WINDOWS_ARCH_MACHINE_TYPES.get(target_platform)
+            if expected_machine is None:
+                print(f"[FAIL] Unrecognized target platform: {target_platform}")
+                return False
+
+            if machine_type != expected_machine:
+                print(f"[FAIL] Architecture mismatch for target platform {target_platform}")
+                print(f"  Expected machine type: 0x{expected_machine:04X}")
+                print(f"  Actual machine type: 0x{machine_type:04X}")
+                return False
+
+            print("[OK] Architecture check passed")
+            return True
 
     except Exception as e:
         print(f"[FAIL] Failed to read PE header: {e}")
@@ -104,7 +137,7 @@ def main():
     else:
         success = check_unix_arch(cppo_path)
 
-    return handle_test_result("cppo architecture tests", success, arch_sensitive=True)
+    return handle_test_result("cppo architecture tests", success)
 
 
 if __name__ == "__main__":
