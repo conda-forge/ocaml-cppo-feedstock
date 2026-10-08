@@ -1,9 +1,9 @@
 c_compiler:
 - gcc
 channel_sources:
-- conda-forge
+- conda-forge/label/ocaml_experimental,conda-forge
 channel_targets:
-- conda-forge main
+- conda-forge ocaml_experimental
 m2w64_c_stdlib:
 - m2w64-sysroot
 m2w64_c_stdlib_version:
