@@ -88,6 +88,9 @@ if is_cross_compile; then
   swap_ocaml_compilers
   setup_cross_c_compilers
   configure_cross_environment
+  if ! is_non_unix; then
+    wrap_native_toplevel
+  fi
   if is_macos; then
     create_macos_ocamlmklib_wrapper
   fi
