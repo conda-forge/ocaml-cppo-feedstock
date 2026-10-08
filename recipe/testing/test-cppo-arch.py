@@ -21,6 +21,15 @@ UNIX_ARCH_TOKENS = {
     "linux-aarch64": "aarch64",
     "osx-arm64": "arm64",
     "linux-ppc64le": "PowerPC",
+    "linux-riscv64": "RISC-V",
+    "linux-s390x": "S/390",
+}
+
+# Endianness token `file` emits, checked only for the platforms listed.
+UNIX_ENDIAN_TOKENS = {
+    "linux-ppc64le": "LSB",
+    "linux-riscv64": "LSB",
+    "linux-s390x": "MSB",
 }
 
 
@@ -44,6 +53,13 @@ def check_unix_arch(binary_path):
     expected_token = UNIX_ARCH_TOKENS.get(target_platform)
     if expected_token is None:
         print(f"[FAIL] Unrecognized target platform: {target_platform}")
+        return False
+
+    expected_endian = UNIX_ENDIAN_TOKENS.get(target_platform)
+    if expected_endian is not None and expected_endian.lower() not in file_output.lower():
+        print(f"[FAIL] Endianness mismatch for target platform {target_platform}")
+        print(f"  Expected token: {expected_endian}")
+        print(f"  file output: {file_output}")
         return False
 
     if expected_token.lower() in file_output.lower():

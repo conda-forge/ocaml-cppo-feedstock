@@ -7,3 +7,8 @@ c_compiler:
 
 ocaml_compiler_version:
   - "5.4.0"
+
+channel_sources:
+  - conda-forge/label/ocaml_experimental,conda-forge
+channel_targets:
+  - conda-forge ocaml_experimental

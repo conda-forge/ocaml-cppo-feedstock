@@ -23,8 +23,10 @@ is_cross_compile() {
   if [[ -n "${target_platform:-}" ]]; then
     case "$(uname -s):$(uname -m):${target_platform}" in
       Linux:x86_64:linux-64|Linux:aarch64:linux-aarch64|Linux:ppc64le:linux-ppc64le) ;;
+      Linux:riscv64:linux-riscv64|Linux:s390x:linux-s390x) ;;
       Darwin:x86_64:osx-64|Darwin:arm64:osx-arm64) ;;
       *NT*:*:win-64|MSYS*:*:win-64|MINGW*:*:win-64|CYGWIN*:*:win-64) ;;
+      *NT*:*:win-arm64|MSYS*:*:win-arm64|MINGW*:*:win-arm64|CYGWIN*:*:win-arm64) ;;
       *) return 0 ;;
     esac
   fi

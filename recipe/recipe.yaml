@@ -1,5 +1,5 @@
 context:
-  build_number: 2
+  build_number: 102
   name: ocaml-cppo
   version: "1.8.0"
 
@@ -19,7 +19,7 @@ source:
 
 build:
   number: ${{ build_number }}
-  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_experimental_${{ build_number }}
 
 requirements:
   build:
@@ -84,9 +84,13 @@ tests:
         - testing/test-cppo-arch.py
         - testing/test-cppo-functional.py
     requirements:
-      run:
+      # build-platform python drives the target binary via qemu binfmt on cross
+      # lanes (sparse riscv64/s390x subdirs lack python and file)
+      build:
         - ${{ m2 }}file
         - python >=3.9
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.*
 
 about:
   license: BSD-3-Clause

@@ -203,12 +203,15 @@ if [[ -f "${CPPO_BIN}" ]] || [[ -f "${ALT_CPPO_BIN}" ]]; then
   # architecture: cppo is published to the TARGET subdir, so it must be
   # TARGET-arch.
   if is_cross_compile; then
+    EXPECTED_ENDIAN_TOKEN=""
     case "${target_platform}" in
       linux-64) EXPECTED_ARCH_TOKEN="x86-64" ;;
       osx-64) EXPECTED_ARCH_TOKEN="x86_64" ;;
       linux-aarch64) EXPECTED_ARCH_TOKEN="aarch64" ;;
       osx-arm64) EXPECTED_ARCH_TOKEN="arm64" ;;
-      linux-ppc64le) EXPECTED_ARCH_TOKEN="PowerPC" ;;
+      linux-ppc64le) EXPECTED_ARCH_TOKEN="PowerPC"; EXPECTED_ENDIAN_TOKEN="LSB" ;;
+      linux-riscv64) EXPECTED_ARCH_TOKEN="RISC-V"; EXPECTED_ENDIAN_TOKEN="LSB" ;;
+      linux-s390x) EXPECTED_ARCH_TOKEN="S/390"; EXPECTED_ENDIAN_TOKEN="MSB" ;;
       *)
         echo "ERROR: unrecognised target_platform '${target_platform}' - no known 'file' architecture token to assert against"
         exit 1
@@ -216,12 +219,13 @@ if [[ -f "${CPPO_BIN}" ]] || [[ -f "${ALT_CPPO_BIN}" ]]; then
     esac
     FILE_OUTPUT=$(file "${ACTUAL_BIN}")
     echo "${FILE_OUTPUT}"
-    if echo "${FILE_OUTPUT}" | grep -q "${EXPECTED_ARCH_TOKEN}"; then
-      echo "[OK] Binary is correctly built for TARGET architecture (${target_platform}, expected '${EXPECTED_ARCH_TOKEN}')"
+    if echo "${FILE_OUTPUT}" | grep -q "${EXPECTED_ARCH_TOKEN}" \
+       && echo "${FILE_OUTPUT}" | grep -q "${EXPECTED_ENDIAN_TOKEN}"; then
+      echo "[OK] Binary is correctly built for TARGET architecture (${target_platform}, expected '${EXPECTED_ARCH_TOKEN}' '${EXPECTED_ENDIAN_TOKEN}')"
     else
       echo "ERROR: cppo binary architecture mismatch"
       echo "  target_platform: ${target_platform}"
-      echo "  expected 'file' token: ${EXPECTED_ARCH_TOKEN}"
+      echo "  expected 'file' token: ${EXPECTED_ARCH_TOKEN} ${EXPECTED_ENDIAN_TOKEN}"
       echo "  actual 'file' output: ${FILE_OUTPUT}"
       exit 1
     fi

@@ -62,6 +62,10 @@ def get_target_arch() -> str:
         return "aarch64"
     if "ppc64le" in target_platform:
         return "ppc64le"
+    if "riscv64" in target_platform:
+        return "riscv64"
+    if "s390x" in target_platform:
+        return "s390x"
     if "arm64" in target_platform:
         return "arm64"
     return platform.machine().lower()
