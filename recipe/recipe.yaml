@@ -60,6 +60,12 @@ requirements:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*[build_number=">=117"]
       else:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # Cross: cppo_ocamlbuild targets the HOST platform, so compile it against the
+    # target ocamlbuild (CRC-consistent with the cross stdlib) rather than the
+    # BUILD one; on linux-s390x the two stdlib trees differ by construction.
+    - if: build_platform != target_platform
+      then:
+        - ocamlbuild *[build_number=">=103"]
   # The inherited ocaml run_export carries no build-string glob, so it does not
   # encode the windows toolchain track. ocaml_win-64 ships gcc_* and vs2022_* at
   # the same version and build, so constrain the track explicitly. This binds
