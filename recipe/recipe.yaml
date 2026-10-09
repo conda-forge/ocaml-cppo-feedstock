@@ -53,13 +53,7 @@ requirements:
         - ${{ m2 }}coreutils
   host:
     - ocaml ${{ ocaml_compiler_version }}.*
-    # linux-s390x needs build >=117: older s390x cross compilers (built
-    # --without-zstd) cannot read zstd-compressed .cmi from main-channel packages
-    - if: target_platform == "linux-s390x"
-      then:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*[build_number=">=117"]
-      else:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     # Cross: cppo_ocamlbuild targets the HOST platform, so compile it against the
     # target ocamlbuild (CRC-consistent with the cross stdlib) rather than the
     # BUILD one; on linux-s390x the two stdlib trees differ by construction.
@@ -107,8 +101,6 @@ tests:
       build:
         - ${{ m2 }}file
         - python >=3.9
-      run:
-        - ocaml ${{ ocaml_compiler_version }}.*
 
 about:
   license: BSD-3-Clause
