@@ -1,5 +1,5 @@
 context:
-  build_number: 2
+  build_number: 102
   name: ocaml-cppo
   version: "1.8.0"
 
@@ -19,7 +19,7 @@ source:
 
 build:
   number: ${{ build_number }}
-  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_experimental_${{ build_number }}
 
 requirements:
   build:
@@ -33,7 +33,13 @@ requirements:
     - ${{ m2 }}gawk
     - ${{ m2 }}grep
     - ocaml-dune
-    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # linux-s390x needs build >=117: older s390x cross compilers (built
+    # --without-zstd) cannot read zstd-compressed .cmi from main-channel packages
+    - if: target_platform == "linux-s390x"
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*[build_number=">=117"]
+      else:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     - if: build_platform != target_platform
       then:
         - ocaml ${{ ocaml_compiler_version }}.*
@@ -48,6 +54,12 @@ requirements:
   host:
     - ocaml ${{ ocaml_compiler_version }}.*
     - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # Cross: cppo_ocamlbuild targets the HOST platform, so compile it against the
+    # target ocamlbuild (CRC-consistent with the cross stdlib) rather than the
+    # BUILD one; on linux-s390x the two stdlib trees differ by construction.
+    - if: build_platform != target_platform
+      then:
+        - ocamlbuild *[build_number=">=103"]
   # The inherited ocaml run_export carries no build-string glob, so it does not
   # encode the windows toolchain track. ocaml_win-64 ships gcc_* and vs2022_* at
   # the same version and build, so constrain the track explicitly. This binds
@@ -84,7 +96,9 @@ tests:
         - testing/test-cppo-arch.py
         - testing/test-cppo-functional.py
     requirements:
-      run:
+      # build-platform python drives the target binary via qemu binfmt on cross
+      # lanes (sparse riscv64/s390x subdirs lack python and file)
+      build:
         - ${{ m2 }}file
         - python >=3.9
 

@@ -23,8 +23,10 @@ is_cross_compile() {
   if [[ -n "${target_platform:-}" ]]; then
     case "$(uname -s):$(uname -m):${target_platform}" in
       Linux:x86_64:linux-64|Linux:aarch64:linux-aarch64|Linux:ppc64le:linux-ppc64le) ;;
+      Linux:riscv64:linux-riscv64|Linux:s390x:linux-s390x) ;;
       Darwin:x86_64:osx-64|Darwin:arm64:osx-arm64) ;;
       *NT*:*:win-64|MSYS*:*:win-64|MINGW*:*:win-64|CYGWIN*:*:win-64) ;;
+      *NT*:*:win-arm64|MSYS*:*:win-arm64|MINGW*:*:win-arm64|CYGWIN*:*:win-arm64) ;;
       *) return 0 ;;
     esac
   fi
@@ -166,6 +168,27 @@ configure_cross_environment() {
   export OCAMLLIB="${cross_ocaml_lib}"
   export LIBRARY_PATH="${cross_ocaml_lib}:${PREFIX}/lib:${LIBRARY_PATH:-}"
   export LDFLAGS="-L${cross_ocaml_lib} -L${PREFIX}/lib ${LDFLAGS:-}"
+}
+
+# The ocaml toplevel runs on the BUILD machine (dune runs it for src/compat.ml),
+# so it must load the native stdlib, not the cross tree that OCAMLLIB points at
+# under cross-compilation. Wrap it to force OCAMLLIB to the native lib dir.
+wrap_native_toplevel() {
+  echo "  Wrapping native ocaml toplevel with native OCAMLLIB..."
+  local real_ocaml="${BUILD_PREFIX}/bin/ocaml"
+
+  if [[ ! -f "${real_ocaml}" ]]; then
+    echo "  ${real_ocaml} is not a regular file, skipping toplevel wrapper"
+    return 0
+  fi
+  if [[ ! -f "${real_ocaml}.native-toplevel" ]]; then
+    mv "${real_ocaml}" "${real_ocaml}.native-toplevel"
+  fi
+  cat > "${real_ocaml}" << WRAPPER_EOF
+#!/usr/bin/env bash
+OCAMLLIB="${BUILD_PREFIX}/lib/ocaml" exec "${BUILD_PREFIX}/bin/ocaml.native-toplevel" "\$@"
+WRAPPER_EOF
+  chmod +x "${real_ocaml}"
 }
 
 create_macos_ocamlmklib_wrapper() {

@@ -35,10 +35,6 @@ if is_non_unix; then
   # Use the MSYS2 (/d/bld/...) form instead.
   BUILD_PREFIX_POSIX="$(cygpath -u "${BUILD_PREFIX}")"
   export PATH="${BUILD_PREFIX_POSIX}/bin:${BUILD_PREFIX_POSIX}/Library/bin:${PATH}"
-
-  echo "=== Windows build environment ==="
-  echo "Install prefix: ${CPPO_INSTALL_PREFIX}"
-  echo "PATH: ${PATH}"
 else
   export CPPO_INSTALL_PREFIX="${PREFIX}"
 fi
@@ -63,40 +59,26 @@ fi
 
 DUNE_PACKAGES="cppo,cppo_ocamlbuild"
 
-echo "=== Build configuration ==="
-echo "  DUNE_PACKAGES: ${DUNE_PACKAGES}"
-
 # ==============================================================================
 # PLATFORM-SPECIFIC BUILD
 # ==============================================================================
-
-# Debug: Show cross-compilation environment
-echo "=== Cross-compilation detection ==="
-echo "  CONDA_BUILD_CROSS_COMPILATION: ${CONDA_BUILD_CROSS_COMPILATION:-not set}"
-echo "  build_platform: ${build_platform:-not set}"
-echo "  target_platform: ${target_platform:-not set}"
-echo "  is_cross_compile: $(is_cross_compile && echo 'true' || echo 'false')"
 
 if is_cross_compile; then
   # ===========================================================================
   # CROSS-COMPILATION PATH
   # ===========================================================================
-  echo "=== Cross-compilation build ==="
   # cppo is published to the TARGET subdir, so the cppo binary built here
   # MUST be TARGET-arch (build_platform=${build_platform}, target_platform=${target_platform}).
 
   swap_ocaml_compilers
   setup_cross_c_compilers
   configure_cross_environment
+  if ! is_non_unix; then
+    wrap_native_toplevel
+  fi
   if is_macos; then
     create_macos_ocamlmklib_wrapper
   fi
-
-  echo "  ocamlc: $(which ocamlc)"
-  ocamlc -version
-  DETECTED_ARCH=$(ocamlc -config | grep "^architecture:" | awk '{print $2}')
-  echo "  Detected OCaml target architecture: ${DETECTED_ARCH:-(undetermined)}"
-  echo "  OCAMLLIB: ${OCAMLLIB:-not set}"
 
   # Build cppo using dune (cppo uses dune build system)
   if command -v dune &>/dev/null; then
@@ -111,7 +93,6 @@ elif is_non_unix; then
   # ===========================================================================
   # WINDOWS BUILD PATH
   # ===========================================================================
-  echo "=== Windows build ==="
 
   # OCaml reports its own C toolchain: msvc on the MSVC port, cc on mingw.
   # grep -a: ocamlc -config output can trip grep's binary detection.
@@ -125,9 +106,6 @@ elif is_non_unix; then
     ml64_dir="$(dirname "$(command -v ml64)")"
     export PATH="${BUILD_PREFIX_POSIX}/Library/bin:${BUILD_PREFIX_POSIX}/bin:${ml64_dir}:/usr/bin:/c/Windows/System32:/c/Windows"
   fi
-  echo "  ocamlc ccomp_type: ${ocaml_ccomp_type:-(undetermined)}"
-  echo "  ml64: $(command -v ml64 || echo 'NOT FOUND')"
-  echo "  cygpath: $(command -v cygpath || echo 'NOT FOUND')"
 
   # dune's windows cache layout mis-handles mixed path separators and dies in
   # mkdir_p on $SRC_DIR/dune/db. The cache buys nothing in a one-shot CI build.
@@ -146,7 +124,6 @@ else
   # ===========================================================================
   # NATIVE UNIX BUILD (Linux/macOS native)
   # ===========================================================================
-  echo "=== Native build ==="
 
   # Build cppo using dune
   if command -v dune &>/dev/null; then
@@ -197,18 +174,20 @@ if [[ -f "${CPPO_BIN}" ]] || [[ -f "${ALT_CPPO_BIN}" ]]; then
   [[ -f "${CPPO_BIN}" ]] && ACTUAL_BIN="${CPPO_BIN}" || ACTUAL_BIN="${ALT_CPPO_BIN}"
 
   echo "=== cppo installed successfully ==="
-  echo "Binary: ${ACTUAL_BIN}"
 
   # For cross-compilation, verify the installed binary matches the TARGET
   # architecture: cppo is published to the TARGET subdir, so it must be
   # TARGET-arch.
   if is_cross_compile; then
+    EXPECTED_ENDIAN_TOKEN=""
     case "${target_platform}" in
       linux-64) EXPECTED_ARCH_TOKEN="x86-64" ;;
       osx-64) EXPECTED_ARCH_TOKEN="x86_64" ;;
       linux-aarch64) EXPECTED_ARCH_TOKEN="aarch64" ;;
       osx-arm64) EXPECTED_ARCH_TOKEN="arm64" ;;
-      linux-ppc64le) EXPECTED_ARCH_TOKEN="PowerPC" ;;
+      linux-ppc64le) EXPECTED_ARCH_TOKEN="PowerPC"; EXPECTED_ENDIAN_TOKEN="LSB" ;;
+      linux-riscv64) EXPECTED_ARCH_TOKEN="RISC-V"; EXPECTED_ENDIAN_TOKEN="LSB" ;;
+      linux-s390x) EXPECTED_ARCH_TOKEN="S/390"; EXPECTED_ENDIAN_TOKEN="MSB" ;;
       *)
         echo "ERROR: unrecognised target_platform '${target_platform}' - no known 'file' architecture token to assert against"
         exit 1
@@ -216,18 +195,16 @@ if [[ -f "${CPPO_BIN}" ]] || [[ -f "${ALT_CPPO_BIN}" ]]; then
     esac
     FILE_OUTPUT=$(file "${ACTUAL_BIN}")
     echo "${FILE_OUTPUT}"
-    if echo "${FILE_OUTPUT}" | grep -q "${EXPECTED_ARCH_TOKEN}"; then
-      echo "[OK] Binary is correctly built for TARGET architecture (${target_platform}, expected '${EXPECTED_ARCH_TOKEN}')"
+    if echo "${FILE_OUTPUT}" | grep -q "${EXPECTED_ARCH_TOKEN}" \
+       && echo "${FILE_OUTPUT}" | grep -q "${EXPECTED_ENDIAN_TOKEN}"; then
+      echo "[OK] Binary is correctly built for TARGET architecture (${target_platform}, expected '${EXPECTED_ARCH_TOKEN}' '${EXPECTED_ENDIAN_TOKEN}')"
     else
       echo "ERROR: cppo binary architecture mismatch"
       echo "  target_platform: ${target_platform}"
-      echo "  expected 'file' token: ${EXPECTED_ARCH_TOKEN}"
+      echo "  expected 'file' token: ${EXPECTED_ARCH_TOKEN} ${EXPECTED_ENDIAN_TOKEN}"
       echo "  actual 'file' output: ${FILE_OUTPUT}"
       exit 1
     fi
-  elif ! is_non_unix; then
-    # Native Unix build - show file info (optional)
-    file "${ACTUAL_BIN}" || true
   fi
 
   # Windows: file command unavailable, just verify binary exists and is non-empty

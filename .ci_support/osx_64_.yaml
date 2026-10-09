@@ -2,14 +2,16 @@ MACOSX_DEPLOYMENT_TARGET:
 - '11.0'
 MACOSX_SDK_VERSION:
 - '11.0'
+c_compiler:
+- clang
 c_stdlib:
 - macosx_deployment_target
 c_stdlib_version:
 - '11.0'
 channel_sources:
-- conda-forge
+- conda-forge/label/ocaml_experimental,conda-forge
 channel_targets:
-- conda-forge main
+- conda-forge ocaml_experimental
 macos_machine:
 - x86_64-apple-darwin13.4.0
 ocaml_compiler_version:
