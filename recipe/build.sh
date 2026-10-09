@@ -96,7 +96,12 @@ elif is_non_unix; then
 
   # OCaml reports its own C toolchain: msvc on the MSVC port, cc on mingw.
   # grep -a: ocamlc -config output can trip grep's binary detection.
-  ocaml_ccomp_type="$(ocamlc -config 2>/dev/null | grep -a '^ccomp_type:' | awk '{print $2}')"
+  # Skipped on win-arm64: ocaml there is zig/bytecode-only, there is no ml64,
+  # and grep may not be on PATH.
+  ocaml_ccomp_type=""
+  if [[ "${target_platform}" != "win-arm64" ]]; then
+    ocaml_ccomp_type="$(ocamlc -config 2>/dev/null | grep -a '^ccomp_type:' | awk '{print $2}')"
+  fi
   if [[ "${ocaml_ccomp_type}" == "msvc" ]]; then
     # Measured on menhir: on this lane the inherited PATH is roughly twice as
     # long as on the mingw lane - the MSVC/SDK block appears twice and conda

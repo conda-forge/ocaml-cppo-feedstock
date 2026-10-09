@@ -1,5 +1,5 @@
 context:
-  build_number: 102
+  build_number: 103
   name: ocaml-cppo
   version: "1.8.0"
 
@@ -27,7 +27,17 @@ requirements:
       then:
         - ${{ stdlib("c") }}
       else:
-        - ${{ stdlib("m2w64_c") }}
+        - if: target_platform == "win-arm64"
+          then:
+            - ${{ stdlib("c") }}
+          else:
+            - ${{ stdlib("m2w64_c") }}
+    # win-arm64 ocaml is bytecode-only: executables are complete bytecode exes
+    # that still need a C linker (zig; empty run_exports). win-64 gets its
+    # compiler via the ocaml_win-64 pin.
+    - if: target_platform == "win-arm64"
+      then:
+        - ${{ compiler("c") }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}file
     - ${{ m2 }}gawk
@@ -39,7 +49,14 @@ requirements:
       then:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*[build_number=">=117"]
       else:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        # win-arm64 needs build >=116: older flexlink writes descending
+        # relocations that lld (zig cc) turns into a corrupt base-reloc block,
+        # and older builds skip the stack probes (-mno-stack-arg-probe).
+        - if: target_platform == "win-arm64"
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}[build_number=">=116"]
+          else:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     - if: build_platform != target_platform
       then:
         - ocaml ${{ ocaml_compiler_version }}.*
@@ -53,7 +70,11 @@ requirements:
         - ${{ m2 }}coreutils
   host:
     - ocaml ${{ ocaml_compiler_version }}.*
-    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - if: target_platform == "win-arm64"
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}[build_number=">=116"]
+      else:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     # Cross: cppo_ocamlbuild targets the HOST platform, so compile it against the
     # target ocamlbuild (CRC-consistent with the cross stdlib) rather than the
     # BUILD one; on linux-s390x the two stdlib trees differ by construction.
