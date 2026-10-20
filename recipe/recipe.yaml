@@ -1,5 +1,5 @@
 context:
-  build_number: 103
+  build_number: 104
   name: ocaml-cppo
   version: "1.8.0"
 
@@ -19,23 +19,18 @@ source:
 
 build:
   number: ${{ build_number }}
+  script: build.sh
   string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_experimental_${{ build_number }}
 
 requirements:
   build:
-    - if: unix
+    - if: not unix and c_compiler == "gcc"
       then:
-        - ${{ stdlib("c") }}
+        - ${{ stdlib("m2w64_c") }}
       else:
-        - if: target_platform == "win-arm64"
-          then:
-            - ${{ stdlib("c") }}
-          else:
-            - ${{ stdlib("m2w64_c") }}
-    # win-arm64 ocaml is bytecode-only: executables are complete bytecode exes
-    # that still need a C linker (zig; empty run_exports). win-64 gets its
-    # compiler via the ocaml_win-64 pin.
-    - if: target_platform == "win-arm64"
+        - ${{ stdlib("c") }}
+    # vs2022: ocaml no longer brings MSVC; zig: links the bytecode exes
+    - if: not unix and c_compiler != "gcc"
       then:
         - ${{ compiler("c") }}
     - ${{ m2 }}bash >=5.2
@@ -43,53 +38,33 @@ requirements:
     - ${{ m2 }}gawk
     - ${{ m2 }}grep
     - ocaml-dune
-    # linux-s390x needs build >=117: older s390x cross compilers (built
-    # --without-zstd) cannot read zstd-compressed .cmi from main-channel packages
-    - if: target_platform == "linux-s390x"
+    - ${{ compiler("ocaml") }}
+    - if: not unix
       then:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*[build_number=">=117"]
-      else:
-        # win-arm64 needs build >=116: older flexlink writes descending
-        # relocations that lld (zig cc) turns into a corrupt base-reloc block,
-        # and older builds skip the stack probes (-mno-stack-arg-probe).
-        - if: target_platform == "win-arm64"
-          then:
-            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}[build_number=">=116"]
-          else:
-            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
-    - if: build_platform != target_platform
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # the cross tree ships a working build-arch toplevel, so no native ocaml
+    - if: build_platform != target_platform and unix
       then:
-        - ocaml ${{ ocaml_compiler_version }}.*
-    # cppo_ocamlbuild is a real OCaml library (ocamlbuild_plugin/dune declares
-    # `library`), so this package ships compiled interfaces and needs a runtime
-    # ocaml constraint. That comes from the host ocaml run_exports - which is why
-    # ignore_run_exports must not list ocaml here.
-    - ocamlbuild
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
+    - if: build_platform != target_platform and not unix
+      then:
+        - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.* gcc_*
+    - ocamlbuild >=0.16.1
     - if: not unix
       then:
         - ${{ m2 }}coreutils
   host:
     - ocaml ${{ ocaml_compiler_version }}.*
-    - if: target_platform == "win-arm64"
+    - if: not unix
       then:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}[build_number=">=116"]
-      else:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
-    # Cross: cppo_ocamlbuild targets the HOST platform, so compile it against the
-    # target ocamlbuild (CRC-consistent with the cross stdlib) rather than the
-    # BUILD one; on linux-s390x the two stdlib trees differ by construction.
     - if: build_platform != target_platform
       then:
-        - ocamlbuild *[build_number=">=103"]
-  # The inherited ocaml run_export carries no build-string glob, so it does not
-  # encode the windows toolchain track. ocaml_win-64 ships gcc_* and vs2022_* at
-  # the same version and build, so constrain the track explicitly. This binds
-  # rather than depends: the ocaml metapackage already pulls an exact
-  # ocaml_${{ target_platform }}, so the constraint always has something to bind.
+        - ocamlbuild >=0.16.1
   run_constraints:
     - if: not unix
       then:
-        - ocaml_${{ target_platform }} * ${{ c_compiler }}_*
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
 
 tests:
   # Package contents validation (strict)

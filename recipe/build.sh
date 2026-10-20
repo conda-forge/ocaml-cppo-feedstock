@@ -28,7 +28,7 @@ fi
 
 # Windows: Set install prefix and ensure OCaml binaries are in PATH
 if is_non_unix; then
-  export CPPO_INSTALL_PREFIX="${_PREFIX_}/Library"
+  export CPPO_INSTALL_PREFIX="$(cygpath -m "${PREFIX}")/Library"
   # BUILD_PREFIX is a Win32 path (e.g. D:\bld\...). Appending it raw into a
   # colon-delimited PATH leaves a drive colon mid-list, which MSYS2's automatic
   # PATH conversion then splits on and shreds when it spawns a native process.
@@ -40,8 +40,8 @@ else
 fi
 
 # Set OCAMLPATH so dune can find ocamlbuild package (META in lib/ocaml/ocamlbuild/).
-# Native builds only: under cross-compilation configure_cross_environment points
-# OCAMLLIB at the cross tree, and findlib searches OCAMLPATH before the stdlib dir,
+# Native builds only: under cross-compilation the cross compiler's self-activation
+# points OCAMLLIB at the cross tree, and findlib searches OCAMLPATH before the stdlib dir,
 # so a native lib/ocaml here would let dune resolve NATIVE unix.cmxa / str.cmxa into
 # a target-arch link.
 if ! is_cross_compile; then
@@ -70,12 +70,8 @@ if is_cross_compile; then
   # cppo is published to the TARGET subdir, so the cppo binary built here
   # MUST be TARGET-arch (build_platform=${build_platform}, target_platform=${target_platform}).
 
-  swap_ocaml_compilers
+  # ocaml >= 5.4.1 cross self-activation sets OCAMLLIB, CONDA_OCAML_* and the host -L
   setup_cross_c_compilers
-  configure_cross_environment
-  if ! is_non_unix; then
-    wrap_native_toplevel
-  fi
   if is_macos; then
     create_macos_ocamlmklib_wrapper
   fi
