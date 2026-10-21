@@ -10,7 +10,7 @@ c_compiler:
       - zig
 
 ocaml_compiler_version:
-  - "5.4.1"
+  - "5.5.1"
 
 # Strict priority hides every main build of a name the label carries, so the label
 # must hold the ocaml version pinned above.
