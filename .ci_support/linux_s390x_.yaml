@@ -1,3 +1,5 @@
+DOCKER_PLATFORM:
+- linux/amd64
 c_compiler:
 - gcc
 c_stdlib:
@@ -13,6 +15,6 @@ docker_image:
 ocaml_compiler:
 - ocaml
 ocaml_compiler_version:
-- 5.4.0
+- 5.5.1
 target_platform:
 - linux-s390x

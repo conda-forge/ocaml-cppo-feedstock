@@ -13,6 +13,6 @@ m2w64_c_stdlib_version:
 ocaml_compiler:
 - ocaml
 ocaml_compiler_version:
-- 5.4.0
+- 5.5.1
 target_platform:
 - win-64
