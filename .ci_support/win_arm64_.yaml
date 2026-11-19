@@ -3,12 +3,16 @@ c_compiler:
 c_stdlib:
 - vs
 channel_sources:
-- conda-forge/label/ocaml_experimental,conda-forge
+- conda-forge/label/ocaml_vs,conda-forge
 channel_targets:
-- conda-forge ocaml_experimental
+- conda-forge ocaml_vs
 ocaml_compiler:
 - ocaml
 ocaml_compiler_version:
-- 5.5.1
+- 5.5.2
 target_platform:
 - win-arm64
+zig_compiler:
+- zig
+zig_compiler_version:
+- 0.17.0
