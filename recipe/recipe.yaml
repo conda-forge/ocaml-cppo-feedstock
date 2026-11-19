@@ -1,5 +1,5 @@
 context:
-  build_number: 105
+  build_number: 6
   name: ocaml-cppo
   version: "1.8.0"
 
@@ -42,7 +42,6 @@ requirements:
     - if: not unix
       then:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
-    # the cross tree ships a working build-arch toplevel, so no native ocaml
     - if: build_platform != target_platform and unix
       then:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
