@@ -1,22 +1,22 @@
-# Local override: gives windows two toolchain lanes (vs2022/gcc) on x86_64 and
+# Local override: gives windows two toolchain lanes (vs/gcc) on x86_64 and
 # a zig lane on arm64.
 c_compiler:
   - if: not unix and x86_64
     then:
-      - vs2022
+      - vs
       - gcc
   - if: not unix and arm64
     then:
       - zig
 
 ocaml_compiler_version:
-  - "5.5.1"
+  - "5.5.2"
 
 # Strict priority hides every main build of a name the label carries, so the label
 # must hold the ocaml version pinned above.
 channel_sources:
-  - conda-forge/label/ocaml_experimental,conda-forge
+  - conda-forge/label/ocaml_vs,conda-forge
 
-# Uploads from the experimental branch go to the ocaml_experimental label, not main.
+# Uploads from the experimental branch go to the ocaml_vs label, not main.
 channel_targets:
-  - conda-forge ocaml_experimental
+  - conda-forge ocaml_vs

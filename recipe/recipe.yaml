@@ -1,9 +1,9 @@
 context:
-  build_number: 6
+  build_number: 106
   name: ocaml-cppo
   version: "1.8.0"
 
-  # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
+  # ocaml_win-64 ships gcc_* and vs_* at the same version/build; name the track.
   c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
   library: ${{ "Library/" if not unix else "" }}
   m2: ${{ "m2-" if not unix else "" }}
@@ -29,10 +29,10 @@ requirements:
         - ${{ stdlib("m2w64_c") }}
       else:
         - ${{ stdlib("c") }}
-    # vs2022: ocaml no longer brings MSVC; zig: links the bytecode exes
+    # vs: ocaml no longer brings MSVC; zig: links the bytecode exes
     - if: not unix and c_compiler != "gcc"
       then:
-        - ${{ compiler("c") }}
+        - ${{ compiler("zig") if c_compiler == "zig" else compiler("c") }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}file
     - ${{ m2 }}gawk
