@@ -23,38 +23,6 @@ Current build status
       </a>
     </td>
   </tr>
-    
-  <tr>
-    <td>Azure</td>
-    <td>
-      <details>
-        <summary>
-          <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=27360&branchName=main">
-            <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/ocaml-cppo-feedstock?branchName=main">
-          </a>
-        </summary>
-        <table>
-          <thead><tr><th>Variant</th><th>Status</th></tr></thead>
-          <tbody><tr>
-              <td>osx_64</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=27360&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/ocaml-cppo-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_64_" alt="variant">
-                </a>
-              </td>
-            </tr><tr>
-              <td>osx_arm64</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=27360&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/ocaml-cppo-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_" alt="variant">
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </details>
-    </td>
-  </tr>
 </table>
 
 Current release info
@@ -67,10 +35,10 @@ Current release info
 Installing ocaml-cppo
 =====================
 
-Installing `ocaml-cppo` from the `conda-forge/label/ocaml_experimental` channel can be achieved by adding `conda-forge/label/ocaml_experimental` to your channels with:
+Installing `ocaml-cppo` from the `conda-forge/label/ocaml_vs` channel can be achieved by adding `conda-forge/label/ocaml_vs` to your channels with:
 
 ```
-conda config --add channels conda-forge/label/ocaml_experimental
+conda config --add channels conda-forge/label/ocaml_vs
 conda config --set channel_priority strict
 ```
 
@@ -116,7 +84,7 @@ It is possible to list all of the versions of `ocaml-cppo` available on your pla
 <summary>With conda</summary>
 
 ```
-conda search ocaml-cppo --channel conda-forge/label/ocaml_experimental
+conda search ocaml-cppo --channel conda-forge/label/ocaml_vs
 ```
 
 </details>
@@ -125,7 +93,7 @@ conda search ocaml-cppo --channel conda-forge/label/ocaml_experimental
 <summary>With mamba</summary>
 
 ```
-mamba search ocaml-cppo --channel conda-forge/label/ocaml_experimental
+mamba search ocaml-cppo --channel conda-forge/label/ocaml_vs
 ```
 
 </details>
@@ -134,7 +102,7 @@ mamba search ocaml-cppo --channel conda-forge/label/ocaml_experimental
 <summary>With pixi</summary>
 
 ```
-pixi search ocaml-cppo --channel conda-forge/label/ocaml_experimental
+pixi search ocaml-cppo --channel conda-forge/label/ocaml_vs
 ```
 
 </details>
@@ -144,13 +112,13 @@ pixi search ocaml-cppo --channel conda-forge/label/ocaml_experimental
 
 ```
 # Search all versions available on your platform:
-mamba repoquery search ocaml-cppo --channel conda-forge/label/ocaml_experimental
+mamba repoquery search ocaml-cppo --channel conda-forge/label/ocaml_vs
 
 # List packages depending on `ocaml-cppo`:
-mamba repoquery whoneeds ocaml-cppo --channel conda-forge/label/ocaml_experimental
+mamba repoquery whoneeds ocaml-cppo --channel conda-forge/label/ocaml_vs
 
 # List dependencies of `ocaml-cppo`:
-mamba repoquery depends ocaml-cppo --channel conda-forge/label/ocaml_experimental
+mamba repoquery depends ocaml-cppo --channel conda-forge/label/ocaml_vs
 ```
 
 </details>
