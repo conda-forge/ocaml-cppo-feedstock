@@ -1,5 +1,5 @@
 context:
-  build_number: 106
+  build_number: 8
   name: ocaml-cppo
   version: "1.8.0"
 
@@ -20,7 +20,7 @@ source:
 build:
   number: ${{ build_number }}
   script: build.sh
-  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_experimental_${{ build_number }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
 
 requirements:
   build:
@@ -48,7 +48,7 @@ requirements:
     - if: build_platform != target_platform and not unix
       then:
         - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.* gcc_*
-    - ocamlbuild >=0.16.1
+    - 'ocamlbuild >=0.16.1[build_number=">=7"]'
     - if: not unix
       then:
         - ${{ m2 }}coreutils
@@ -59,7 +59,7 @@ requirements:
         - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     - if: build_platform != target_platform
       then:
-        - ocamlbuild >=0.16.1
+        - 'ocamlbuild >=0.16.1[build_number=">=7"]'
   run_constraints:
     - if: not unix
       then:
