@@ -8,15 +8,3 @@ c_compiler:
   - if: not unix and arm64
     then:
       - zig
-
-ocaml_compiler_version:
-  - "5.5.2"
-
-# Strict priority hides every main build of a name the label carries, so the label
-# must hold the ocaml version pinned above.
-channel_sources:
-  - conda-forge/label/ocaml_vs,conda-forge
-
-# Uploads from the experimental branch go to the ocaml_vs label, not main.
-channel_targets:
-  - conda-forge ocaml_vs
